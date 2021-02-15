@@ -30,15 +30,15 @@ import sys
 import json
 
 # ROOT_DIR = os.path.abspath("../../")
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = str(Path(__file__).resolve().parents[2])
 print(ROOT_DIR)
 
-sys.path.append(str(ROOT_DIR))
+sys.path.append(ROOT_DIR)
 RESOURCE_DIR = os.path.join(ROOT_DIR, 'resources', 'img')
 TEST_DIR = os.path.join(RESOURCE_DIR, 'test')
 
 from gen_annotation import segcolor
-#
+
 
 
 def make_image_annotation(img, file_name, image_id, bbox):
