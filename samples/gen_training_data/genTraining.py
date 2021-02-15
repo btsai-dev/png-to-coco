@@ -25,17 +25,21 @@
 
 import os
 import cv2
-import numpy as np
+from pathlib import Path
 import sys
 import json
-ROOT_DIR = os.path.abspath("..\\..\\")
+
+# ROOT_DIR = os.path.abspath("../../")
+ROOT_DIR = Path(__file__).resolve().parents[2]
+print(ROOT_DIR)
+
+sys.path.append(str(ROOT_DIR))
 RESOURCE_DIR = os.path.join(ROOT_DIR, 'resources', 'img')
 TEST_DIR = os.path.join(RESOURCE_DIR, 'test')
-print("Root directory is ", ROOT_DIR)
 
-sys.path.append(ROOT_DIR)
+from gen_annotation import segcolor
+#
 
-import gen_annotation.segcolor as segcolor
 
 def make_image_annotation(img, file_name, image_id, bbox):
     width, height = img.size
