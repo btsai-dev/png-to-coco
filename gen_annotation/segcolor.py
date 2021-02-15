@@ -80,6 +80,7 @@ def make_submask_annotations(sub_mask, image_id, category_id, annotation_id, is_
 
     segmentations = []
     polygons = []
+    skipped = 0
     for contour in contours:
         # Flip from (row, col) representation to (x, y)
         # and subtract the padding pixel
@@ -91,11 +92,14 @@ def make_submask_annotations(sub_mask, image_id, category_id, annotation_id, is_
         # TODO: CHANGE THIS DEPENDING ON ACCURACY TO RESULTS
         poly = Polygon(contour)
         poly = poly.simplify(1.0, preserve_topology=False)
-        if len(poly) == 0:
-            continue
-        polygons.append(poly)
+
         segmentation = np.array(poly.exterior.coords).ravel().tolist()
+        if len(segmentation) == 0:
+            skipped+=1
+            print("Skipped over a non-polygonal contour [%d]" % skipped)
+            continue
         segmentations.append(segmentation)
+        polygons.append(poly)
 
     # Combine the polygons to calculate the bounding box and area
     multi_poly = MultiPolygon(polygons)
