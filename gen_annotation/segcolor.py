@@ -69,7 +69,7 @@ def get_mask_categorized(mask_raw):
     return mask_categorized
 
 
-def make_submask_annotations(sub_mask, image_id, category_id, annotation_id, is_crowd):
+def make_submask_annotations(sub_mask, image_id, category_id, is_crowd):
     # Find contours (boundary lines) around each sub-mask
     # Note: there could be multiple contours if the object
     # is partially occluded. (E.g. an elephant behind a tree)
@@ -78,9 +78,11 @@ def make_submask_annotations(sub_mask, image_id, category_id, annotation_id, is_
     # Code sourced from:
     # https://www.immersivelimit.com/create-coco-annotations-from-scratch
 
-    segmentations = []
-    polygons = []
+    annotations = []
+    # segmentations = []
+    # polygons = []
     skipped = 0
+    annotation_id = 0
     for contour in contours:
         # Flip from (row, col) representation to (x, y)
         # and subtract the padding pixel
@@ -95,31 +97,32 @@ def make_submask_annotations(sub_mask, image_id, category_id, annotation_id, is_
 
         segmentation = np.array(poly.exterior.coords).ravel().tolist()
         if len(segmentation) == 0:
-            skipped+=1
+            skipped += 1
             print("Skipped over a non-polygonal contour [%d]" % skipped)
             continue
-        segmentations.append(segmentation)
-        polygons.append(poly)
+
+        # multi_poly = MultiPolygon(poly)
+        x, y, max_x, max_y = poly.bounds
+        width = max_x - x
+        height = max_y - y
+        bbox = (x, y, width, height)
+        area = poly.area
+
+        annotation = {
+            'segmentation': [segmentation],
+            'iscrowd': is_crowd,
+            'image_id': image_id,
+            'category_id': category_id,
+            'id': annotation_id,
+            'bbox': bbox,
+            'area': area
+        }
+        annotation_id += 1
+        annotations.append(annotation)
 
     # Combine the polygons to calculate the bounding box and area
-    multi_poly = MultiPolygon(polygons)
-    x, y, max_x, max_y = multi_poly.bounds
-    width = max_x - x
-    height = max_y - y
-    bbox = (x, y, width, height)
-    area = multi_poly.area
 
     # TODO: ADD PROPER ANNOTATIONS TO ALIGN WITH COCO STANDARDS
     # TODO: ADD SEGMENTATION SECTION FOR MULTIPLE OBJECTS IN AN IMAGE
 
-    annotation = {
-        'segmentation': segmentations,
-        'iscrowd': is_crowd,
-        'image_id': image_id,
-        'category_id': category_id,
-        'id': annotation_id,
-        'bbox': bbox,
-        'area': area
-    }
-
-    return annotation
+    return annotations

@@ -73,7 +73,7 @@ if __name__ == '__main__':
     submasks = get_mask_categorized_Test(mask)
 
     is_crowd = 0
-    annotation_id = 1
+    # annotation_id = 1
     image_id = 1
     annotations = []
     images = []
@@ -100,11 +100,9 @@ if __name__ == '__main__':
             submask,
             image_id,
             category_id,
-            annotation_id,
             is_crowd
         )
-        annotations.append(annotation)
-        annotation_id += 1
+        annotations.extend(annotation)
     image_id += 1
 
     coco = {
