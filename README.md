@@ -25,8 +25,8 @@ pip install -r requirements.txt
 ### Run the Colorseg demo
 - Navigate to ```samples\gen_training_data```  and execute the demo annotation program.
 ```console
-python3 genTraining.py
+python3 genTraining.py -m sample_dir
 ```
-- Program attempts to annotate the marked file in the ```resources\img\test``` folder.
+- Program attempts to annotate the marked files in the ```samples\gen_training_data\sample_dir\marked``` folder.
 
-- The output annotated json file will be written to the same folder as ```output.json```.
+- The output annotated json file will be written to the same folder as ```annotations.json```.
