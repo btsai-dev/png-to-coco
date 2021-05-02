@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from skimage import measure
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry import Polygon
 
 
 def get_colors(img):
@@ -35,7 +35,6 @@ def get_mask_categorized(mask_raw):
 
     pil_mask_categorized = {}
     width, height = pil_mask.size
-    print("Looping through image now!")
 
     # TODO: OPTIMIZE BY SWITCHING FROM PIL TO NUMPY
 
@@ -69,20 +68,19 @@ def get_mask_categorized(mask_raw):
     return mask_categorized
 
 
-def make_submask_annotations(sub_mask, image_id, category_id, is_crowd):
+def make_submask_annotations(sub_mask, image_id, category_id, last_id):
     # Find contours (boundary lines) around each sub-mask
     # Note: there could be multiple contours if the object
     # is partially occluded. (E.g. an elephant behind a tree)
-    contours = measure.find_contours(sub_mask, 0.5, positive_orientation='low')
+    # TODO: Replace with OpenCV contour
+    contours = measure.find_contours(sub_mask, 0.5)
 
     # Code sourced from:
     # https://www.immersivelimit.com/create-coco-annotations-from-scratch
 
     annotations = []
-    # segmentations = []
-    # polygons = []
     skipped = 0
-    annotation_id = 0
+    annotation_id = last_id
     for contour in contours:
         # Flip from (row, col) representation to (x, y)
         # and subtract the padding pixel
@@ -91,12 +89,27 @@ def make_submask_annotations(sub_mask, image_id, category_id, is_crowd):
             contour[i] = (col - 1, row - 1)
 
         # Make a polygon and simplify it
-        # TODO: CHANGE THIS DEPENDING ON ACCURACY TO RESULTS
         poly = Polygon(contour)
         poly = poly.simplify(1.0, preserve_topology=False)
+        segmentation1 = np.array(poly.exterior.coords).ravel().tolist()
 
-        segmentation = np.array(poly.exterior.coords).ravel().tolist()
+        # TODO: CHANGE THIS DEPENDING ON ACCURACY TO RESULTS
+        contour = measure.approximate_polygon(contour, tolerance=0)
+        if len(contour) < 3:
+            continue
+        segmentation = contour.ravel().tolist()
+
         if len(segmentation) == 0:
+            skipped += 1
+            print("Skipped over a non-polygonal contour [%d]" % skipped)
+            continue
+
+        if len(segmentation) == 0:
+            skipped += 1
+            print("Skipped over a non-polygonal contour [%d]" % skipped)
+            continue
+
+        if len(segmentation1) == 0:
             skipped += 1
             print("Skipped over a non-polygonal contour [%d]" % skipped)
             continue
@@ -109,20 +122,22 @@ def make_submask_annotations(sub_mask, image_id, category_id, is_crowd):
         area = poly.area
 
         annotation = {
-            'segmentation': [segmentation],
-            'iscrowd': is_crowd,
-            'image_id': image_id,
-            'category_id': category_id,
             'id': annotation_id,
-            'bbox': bbox,
-            'area': area
+            'category_id': category_id,
+            'iscrowd': 0,
+            'segmentation': [segmentation],
+            'image_id': image_id,
+            'area': area,
+            'bbox': bbox
         }
         annotation_id += 1
         annotations.append(annotation)
+
+    last_id = annotation_id
 
     # Combine the polygons to calculate the bounding box and area
 
     # TODO: ADD PROPER ANNOTATIONS TO ALIGN WITH COCO STANDARDS
     # TODO: ADD SEGMENTATION SECTION FOR MULTIPLE OBJECTS IN AN IMAGE
 
-    return annotations
+    return last_id, annotations

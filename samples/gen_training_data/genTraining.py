@@ -22,23 +22,21 @@
     If you do not pass the --dataset argument, the program will use the filesystem
     structure located at \dataset
 """
-
+import glob
 import os
 import cv2
 from pathlib import Path
 import sys
 import json
+import argparse
 
-# ROOT_DIR = os.path.abspath("../../")
 ROOT_DIR = str(Path(__file__).resolve().parents[2])
-print(ROOT_DIR)
+print("ROOT DIR={}".format(ROOT_DIR))
 
 sys.path.append(ROOT_DIR)
 RESOURCE_DIR = os.path.join(ROOT_DIR, 'resources', 'img')
-TEST_DIR = os.path.join(RESOURCE_DIR, 'test')
 
 from gen_annotation import segcolor
-
 
 
 def make_image_annotation(img, file_name, image_id, bbox):
@@ -52,67 +50,82 @@ def make_image_annotation(img, file_name, image_id, bbox):
     return image_annotation
 
 
-def get_colors_Test(img):
-    mask = segcolor.get_colors(img)
-    #od.display(mask, 'get_colors_Test')
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
-    return mask
-
-
-def get_mask_categorized_Test(mask):
-    mask_categorized = segcolor.get_mask_categorized(mask)
-
-    return mask_categorized
-
-
 if __name__ == '__main__':
-    original_img = cv2.imread(os.path.join(TEST_DIR, 'orig.tif'))
-    marked_img = cv2.imread(os.path.join(TEST_DIR, 'marked.tif'))
-    mask = get_colors_Test(marked_img)
-    submasks = get_mask_categorized_Test(mask)
+    parser = argparse.ArgumentParser(description='Build JSON file.')
+    parser.add_argument('-o', "--original", help="Directory of original images", required=True)
+    parser.add_argument('-m', "--marked", help="Directory of marked images", required=True)
+    argument = parser.parse_args()
 
-    is_crowd = 0
-    # annotation_id = 1
-    image_id = 1
-    annotations = []
+    categories = []
+    category_ids = {}
+
+    original_dir = argument.original
+    marked_dir = argument.marked
+
+    subdirectories = glob.glob(os.path.join(marked_dir, "*", ""))
+    anno_paths = {}
+    category_id = 1
+    folder_paths = {}
+    for subdir in subdirectories:
+        name = os.path.basename(os.path.normpath(subdir))
+        category = {
+            "supercategory": "material defect",
+            "id": category_id,
+            "name": name
+        }
+        category_ids[name] = category_id
+        categories.append(category)
+        marked_paths = glob.glob(subdir + '/*.tif')
+        folder_paths[name] = marked_paths
+        category_id += 1
+    original_paths = glob.glob(original_dir + '/*.tif')
+
     images = []
-    categories = [
-        {"supercategory": "material defect",
-         "id": 1,
-         "name": "crack"}
-    ]
+    annotations = []
 
-    # TODO: IMPLEMENT MAKE IMAGE ANNOTATION
-    # image = make_image_anngotation(img, filename, image_id)
-    image = {
-        "file_name": "marked.tif",
-        "height": 2560,
-        "width": 2560,
-        "id": image_id
-    }
-    images.append(image)
+    image_id = 0
+    last_id = 0
+    for orig_file in original_paths:
+        print("Analyzing Image {}".format(image_id))
+        orig_filename = os.path.basename(orig_file)
+        # Computes the image annotation
+        orig_img = cv2.imread(orig_file)
+        image = {
+            "id": image_id,
+            "width": orig_img.shape[0],
+            "height": orig_img.shape[1],
+            "file_name": orig_filename
+        }
+        images.append(image)
+        for category in folder_paths:
+            for marked_file in folder_paths[category]:
+                marked_filename = os.path.basename(marked_file)
+                if marked_filename != orig_filename:
+                    continue
+                print("Analyzing Category {}".format(category))
+                mark_img = cv2.imread(marked_file)
 
-    for color, submask in submasks.items():
-        # category_id = category_ids[image_id][color]
-        category_id = 1  # Default for now
-        annotation = segcolor.make_submask_annotations(
-            submask,
-            image_id,
-            category_id,
-            is_crowd
-        )
-        annotations.extend(annotation)
-    image_id += 1
+                mask = segcolor.get_colors(mark_img)
+                masks_categorized = segcolor.get_mask_categorized(mask)
+
+                for color, submask in masks_categorized.items():
+                    category_id = category_ids[category]
+                    last_id, annotation = segcolor.make_submask_annotations(
+                        submask,
+                        image_id,
+                        category_id,
+                        last_id
+                    )
+                    annotations.extend(annotation)
+                break
+        image_id += 1
 
     coco = {
         "images": images,
         "annotations": annotations,
         "categories": categories
     }
-    # print(json.dumps(coco, indent=4))
 
-    json_out = os.path.join(TEST_DIR, "output" + "." + "json")
-
+    json_out = os.path.join(marked_dir, "annotations.json")
     with open(json_out, 'w') as outfile:
         json.dump(coco, outfile)
