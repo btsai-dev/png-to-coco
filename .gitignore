@@ -1,7 +1,6 @@
 # IDE-based
-resources/img/*
-!resources/img/test
-!resources/img/.gitkeep 
+#samples/gen_training_data/sample_dataset/annotations/*
+#!samples/gen_training_data/sample_dataset/annotations/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -134,4 +133,3 @@ dmypy.json
 .pyre/
 
 .idea/
-/resources/img/test/output.json

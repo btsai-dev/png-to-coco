@@ -101,17 +101,12 @@ def make_submask_annotations(sub_mask, image_id, category_id, last_id):
 
         if len(segmentation) == 0:
             skipped += 1
-            print("Skipped over a non-polygonal contour [%d]" % skipped)
-            continue
-
-        if len(segmentation) == 0:
-            skipped += 1
-            print("Skipped over a non-polygonal contour [%d]" % skipped)
+            #print("Skipped over a non-polygonal contour [%d]" % skipped)
             continue
 
         if len(segmentation1) == 0:
             skipped += 1
-            print("Skipped over a non-polygonal contour [%d]" % skipped)
+            #print("Skipped over a non-polygonal contour [%d]" % skipped)
             continue
 
         # multi_poly = MultiPolygon(poly)
