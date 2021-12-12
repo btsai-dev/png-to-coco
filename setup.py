@@ -9,7 +9,17 @@ import pip
 import logging
 import pkg_resources
 
-import colorseg
+pip_ver = pkg_resources.get_distribution('pip').version
+pip_version = list(map(int, pip_ver.split('.')[:2]))
+raw = None
+try:
+    if pip_version >= [20, 0]:
+        from pip._internal.network.session import PipSession
+        from pip._internal.req import parse_requirements as pr
+    else:
+        print("Pip version too low. Update your pip to 20+")
+except:
+    print("Error when installing pip.")
 
 try:
     from setuptools import setup
@@ -18,13 +28,8 @@ except ImportError:
 
 
 def parse_requirements(file_path):
-    pip_ver = pkg_resources.get_distribution('pip').version
-    pip_version = list(map(int, pip_ver.split('.')[:2]))
-    if pip_version >= [6, 0]:
-        raw = pip.req.parse_requirements(file_path, session=pip.download.PipSession())
-    else:
-        raw = pip.req.parse_requirements(file_path)
-    return [str(i.req) for i in raw]
+    raw = pr(file_path, session=PipSession)
+    return [str(i.requirement) for i in raw]
 
 
 try:
@@ -33,7 +38,7 @@ except:
     logging.warning('Requirements file failed to load. Using default requirements.')
     install_reqs = []
 
-
+"""
 setup(
     name='lsu-lamda-crack-detection',
     version='0.1',
@@ -46,7 +51,7 @@ setup(
     install_requires=install_reqs,
     include_package_data=True,
     python_requires='>=3.4',
-    long_description="""TO_BE_ADDED""",
+    long_description="TO_BE_ADDED",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Environment :: Console",
@@ -66,3 +71,4 @@ setup(
     ],
     keywords="",
 )
+"""
